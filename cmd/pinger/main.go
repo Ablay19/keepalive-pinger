@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"log"
-	"log/slog"
+	_"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,7 +17,7 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		slog.Fatalf("config error: %v", err)
+		log.Fatalf("config error: %v", err)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
