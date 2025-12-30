@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: keepalive-pinger
+    env: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: TARGET_URLS
+        sync: false
+      - key: INTERVAL_SECONDS
+        value: "60"
