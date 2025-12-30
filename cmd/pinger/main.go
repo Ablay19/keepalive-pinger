@@ -3,12 +3,10 @@ package main
 import (
 	"context"
 	"log"
-	_"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"keepalive-pinger/internal/config"
 	"keepalive-pinger/internal/pinger"
@@ -20,32 +18,21 @@ func main() {
 		log.Fatalf("config error: %v", err)
 	}
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
 	defer stop()
 
-	httpClient := pinger.NewHTTPClient()
+	p := pinger.New(cfg)
+	go p.Start(ctx)
 
-	p := pinger.New(cfg, httpClient)
+	http.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
 
-	go func() {
-		if err := p.StartHealthServer(ctx); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("health server error: %v", err)
-		}
-	}()
-
-	ticker := time.NewTicker(cfg.Interval)
-	defer ticker.Stop()
-
-	log.Println("pinger started")
-
-	for {
-		select {
-		case <-ticker.C:
-			p.RunOnce(ctx)
-		case <-ctx.Done():
-			log.Println("shutdown requested")
-			p.Shutdown()
-			return
-		}
-	}
+	log.Println("health server listening on", cfg.HealthPort)
+	log.Fatal(http.ListenAndServe(":"+cfg.HealthPort, nil))
 }
